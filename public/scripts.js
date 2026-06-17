@@ -9,7 +9,7 @@ let consumer = null;
 
 const initConnect = () => {
   //   console.log("connect button clicked");
-  socket = io(`https://process.env.MEDIASOUP_ANNOUNCED_ADDRESS:3030`);
+  socket = io(`https://process.env.${MEDIASOUP_ANNOUNCED_ADDRESS}:3030`);
   //   keep the socket listeners in their own place
   addSocketListeners();
 };
