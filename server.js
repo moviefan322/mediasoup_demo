@@ -18,9 +18,10 @@ const mediasoup = require("mediasoup");
 
 const config = require("./config/config");
 const createWorkers = require("./createWorkers");
+const createWebRtcTransportBothKinds = require("./public/createWebRtcTransportBothKinds");
 
 const io = socketio(httpsServer, {
-  cors: [`https://localhost:${config.port}`],
+  cors: [`https://204.48.17.220:${config.port}`],
 });
 
 //  our globals
@@ -28,6 +29,8 @@ const io = socketio(httpsServer, {
 let workers = null;
 // init router, it's where our 1 router will live
 let router = null;
+// theProducer will be a global, and whoever produced last
+let theProducer = null;
 
 // prep mediaSoup
 const initMediaSoup = async () => {
@@ -44,6 +47,8 @@ initMediaSoup(); // build our mediasoup server/sfu
 io.on("connect", (socket) => {
   let thisClientProducerTransport = null;
   let thisClientProducer = null;
+  let thisClientConsumerTransport = null;
+  let thisClientConsumer = null;
 
   // socket is the client that just connected
   socket.on("getRtpCap", (ack) => {
@@ -53,30 +58,38 @@ io.on("connect", (socket) => {
 
   socket.on("create-producer-transport", async (ack) => {
     // create a transport! producer transport
-    thisClientProducerTransport = await router.createWebRtcTransport({
-      enableUdp: true,
-      enableTcp: true, // always use udp unless we can't
-      preferUdp: true,
-      listenInfos: [
-        {
-          protocol: "udp",
-          ip: "127.0.0.1",
-        },
-        {
-          protocol: "tcp",
-          ip: "127.0.0.1",
-        },
-      ],
-    });
-    console.log("Producer transport created: ", thisClientProducerTransport.id);
-    const clientTransportParams = {
-      id: thisClientProducerTransport.id,
-      iceParameters: thisClientProducerTransport.iceParameters,
-      iceCandidates: thisClientProducerTransport.iceCandidates,
-      dtlsParameters: thisClientProducerTransport.dtlsParameters,
-    };
+    const { transport, clientTransportParams } =
+      await createWebRtcTransportBothKinds(router);
+    thisClientProducerTransport = transport; // save to this socket session
     ack(clientTransportParams); //what we send back
   });
+
+  socket.on("start-producing", async ({ kind, rtpParameters }, ack) => {
+    try {
+      thisClientProducer = await thisClientProducerTransport.produce({
+        kind,
+        rtpParameters,
+      });
+      theProducer = thisClientProducer; // set global producer to this producer
+      thisClientProducer.on("transportclose", () => {
+        console.log("producer transport closed just fyi");
+        thisClientProducer.close();
+      });
+      ack(thisClientProducer.id);
+    } catch (err) {
+      console.log(err);
+      ack("error");
+    }
+  });
+
+  socket.on("create-consumer-transport", async (ack) => {
+    // create a transport! producer transport
+    const { transport, clientTransportParams } =
+      await createWebRtcTransportBothKinds(router);
+    thisClientConsumerTransport = transport; // save to this socket session
+    ack(clientTransportParams); //what we send back
+  });
+
   socket.on("connect-transport", async (dtlsParamters, ack) => {
     //  get the dts info from the client and finish the connection
     // on success, send success, on fail, send error
@@ -90,16 +103,62 @@ io.on("connect", (socket) => {
     }
   });
 
-  socket.on("start-producing", async ({ kind, rtpParameters }, ack) => {
+  socket.on("connect-consumer-transport", async (dtlsParamters, ack) => {
+    //  get the dts info from the client and finish the connection
+    // on success, send success, on fail, send error
     try {
-      thisClientProducer = await thisClientProducerTransport.produce({
-        kind,
-        rtpParameters,
-      });
-      ack(thisClientProducer.id);
+      await thisClientConsumerTransport.connect(dtlsParamters);
+      ack("success");
     } catch (err) {
-      console.log(err);
+      // something went wrong
+      console.log("connect-transport error: ", err);
       ack("error");
+    }
+  });
+
+  socket.on("consume-media", async ({ rtpCapabilities }, ack) => {
+    // we will set up our client consumer, and send back
+    // the params the client needs to do the same
+    // make sure there is a producer :) we can't consume without one
+    if (!theProducer) {
+      ack("noProducer");
+    } else if (
+      !router.canConsume({ producerId: theProducer.id, rtpCapabilities })
+    ) {
+      ack("cannotConsume");
+    } else {
+      // we can consume, there is a producer and client is able
+      // proceed!
+      thisClientConsumer = await thisClientConsumerTransport.consume({
+        producerId: theProducer.id,
+        rtpCapabilities,
+        paused: true, // see docs, docs is the best way to start
+      });
+      thisClientConsumer.on("transportclose", () => {
+        console.log("consumer transport closed just fyi");
+        thisClientConsumer.close();
+      });
+      const consumerParams = {
+        producerId: theProducer.id,
+        id: thisClientConsumer.id,
+        kind: thisClientConsumer.kind,
+        rtpParameters: thisClientConsumer.rtpParameters,
+      };
+      ack(consumerParams);
+    }
+  });
+
+  socket.on("unpause-consumer", async (ack) => {
+    await thisClientConsumer.resume();
+  });
+
+  socket.on("close-all", async (ack) => {
+    // client has requested to close all
+    try {
+      thisClientConsumerTransport?.close();
+      thisClientProducerTransport?.close();
+    } catch (error) {
+      ack("closeError");
     }
   });
 });
