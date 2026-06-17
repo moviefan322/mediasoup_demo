@@ -1,3 +1,6 @@
+const ANNOUNCED_ADDRESS =
+  process.env.MEDIASOUP_ANNOUNCED_ADDRESS || "127.0.0.1";
+
 const createWebRtcTransportBothKinds = (router) =>
   new Promise(async (resolve, reject) => {
     const transport = await router.createWebRtcTransport({
@@ -8,12 +11,12 @@ const createWebRtcTransportBothKinds = (router) =>
         {
           protocol: "udp",
           ip: "0.0.0.0",
-          announcedAddress: "204.48.17.220",
+          announcedAddress: ANNOUNCED_ADDRESS,
         },
         {
           protocol: "tcp",
           ip: "0.0.0.0",
-          announcedAddress: "204.48.17.220",
+          announcedAddress: ANNOUNCED_ADDRESS,
         },
       ],
     });

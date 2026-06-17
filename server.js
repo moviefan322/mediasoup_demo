@@ -1,17 +1,13 @@
-const fs = require("fs"); // need it to read keys
-const https = require("https"); // need for secure express
+require("dotenv").config(); // for config vars
 
 // express sets up http server
 const express = require("express");
 const app = express();
 app.use(express.static("public"));
 
-// get mkcert keys
-const key = fs.readFileSync("./config/cert.key");
-const cert = fs.readFileSync("./config/cert.crt");
-const options = { key, cert };
-// use keys with https server
-const httpsServer = https.createServer(options, app);
+const http = require("http");
+
+const server = http.createServer(app);
 
 const socketio = require("socket.io");
 const mediasoup = require("mediasoup");
@@ -20,8 +16,16 @@ const config = require("./config/config");
 const createWorkers = require("./createWorkers");
 const createWebRtcTransportBothKinds = require("./public/createWebRtcTransportBothKinds");
 
-const io = socketio(httpsServer, {
-  cors: [`https://204.48.17.220:${config.port}`],
+const io = socketio(server, {
+  cors: {
+    origin: [
+      "https://allsportsradio.site",
+      "https://www.allsportsradio.site",
+      "http://localhost:3030",
+      "https://localhost:3030",
+    ],
+    methods: ["GET", "POST"],
+  },
 });
 
 //  our globals
@@ -163,4 +167,6 @@ io.on("connect", (socket) => {
   });
 });
 
-httpsServer.listen(config.port);
+server.listen(config.port, "127.0.0.1", () => {
+  console.log(`Server running on http://127.0.0.1:${config.port}`);
+});
