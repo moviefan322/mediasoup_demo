@@ -1,0 +1,47 @@
+{
+  "workbench.colorCustomizations": {
+    "activityBar.background": "#111827",
+    "activityBar.foreground": "#D1D5DB",
+    "activityBar.inactiveForeground": "#6B7280",
+
+    "sideBar.background": "#0F172A",
+    "sideBar.foreground": "#CBD5E1",
+    "sideBar.border": "#1E293B",
+
+    "editorGroupHeader.tabsBackground": "#0B1120",
+    "tab.activeBackground": "#111827",
+    "tab.activeForeground": "#F8FAFC",
+    "tab.inactiveBackground": "#0B1120",
+    "tab.inactiveForeground": "#64748B",
+    "tab.border": "#1E293B",
+
+    "titleBar.activeBackground": "#020617",
+    "titleBar.activeForeground": "#E5E7EB",
+    "titleBar.inactiveBackground": "#020617",
+    "titleBar.inactiveForeground": "#64748B",
+
+    "statusBar.background": "#1E293B",
+    "statusBar.foreground": "#E2E8F0",
+    "statusBar.noFolderBackground": "#1E293B",
+    "statusBar.debuggingBackground": "#334155",
+
+    "editor.background": "#020617",
+    "editor.foreground": "#E5E7EB",
+    "editorLineNumber.foreground": "#334155",
+    "editorLineNumber.activeForeground": "#94A3B8",
+    "editorCursor.foreground": "#A7F3D0",
+    "editor.selectionBackground": "#334155",
+    "editor.inactiveSelectionBackground": "#1E293B",
+    "editor.lineHighlightBackground": "#0F172A",
+
+    "terminal.background": "#020617",
+    "terminal.foreground": "#CBD5E1"
+  },
+  "editor.tabCompletion": "off",
+  "editor.suggestSelection": "first",
+  "editor.acceptSuggestionOnCommitCharacter": false,
+  "editor.acceptSuggestionOnEnter": "on",
+  "editor.snippetSuggestions": "bottom",
+  "editor.suggest.showSnippets": false,
+  "emmet.triggerExpansionOnTab": false
+}
